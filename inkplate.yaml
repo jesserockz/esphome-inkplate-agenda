@@ -1,0 +1,209 @@
+substitutions:
+  devicename: inkplate
+  friendly_name: Inkplate
+  glyphs: " !'\"%()+,-.:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz°$"
+
+logger:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 0s
+  output_power: 20.5db
+  ap:
+    ssid: $devicename
+    password: !secret ap_password
+
+captive_portal:
+
+ota:
+
+esphome:
+  name: $devicename
+  platform: ESP32
+  board: esp-wrover-kit
+  build_path: builds/$devicename/
+  includes:
+  - inkplate.h
+
+  on_boot:
+  - priority: 300
+    then:
+    - lambda: |-
+        id(battery_voltage).update();
+        id(should_deep_sleep).publish_state(!id(touch_3).state);
+
+deep_sleep:
+  sleep_duration: 60min
+  wakeup_pin_mode: INVERT_WAKEUP
+  esp32_ext1_wakeup:
+    pins: 34
+    mode: ALL_LOW
+
+api:
+  reboot_timeout: 0s
+  services:
+  - service: show_calendar
+    then:
+    - display.page.show: calendar
+    - component.update: inkplate_display
+  - service: add_event
+    variables:
+      title: string
+      start_time: int
+      end_time: int
+    then:
+    - lambda: add_event(title, start_time, end_time);
+  - service: events_added
+    then:
+    - component.update: battery_voltage
+    - component.update: inkplate_display
+    - deep_sleep.enter:
+globals:
+- id: current_page
+  type: int
+  initial_value: "0"
+
+switch:
+- platform: restart
+  name: "${friendly_name} Reboot"
+  id: reboot
+- platform: gpio
+  id: battery_read_mosfet
+  name: "${friendly_name} Battery Mosfet"
+  pin:
+    mcp23017: mcp23017_hub
+    number: 9
+    inverted: true
+
+- platform: template
+  name: "${friendly_name} Greyscale"
+  lambda: return id(inkplate_display).get_greyscale();
+  turn_on_action:
+  - lambda: id(inkplate_display).set_greyscale(true);
+  turn_off_action:
+  - lambda: id(inkplate_display).set_greyscale(false);
+
+- platform: template
+  name: "${friendly_name} Partial Updating"
+  lambda: return id(inkplate_display).get_partial_updating();
+  turn_on_action:
+  - lambda: id(inkplate_display).set_partial_updating(true);
+  turn_off_action:
+  - lambda: id(inkplate_display).set_partial_updating(false);
+
+sensor:
+- platform: adc
+  id: battery_voltage
+  name: ${friendly_name} Battery Voltage
+  update_interval: never
+  attenuation: 11db
+  pin: 35
+  filters:
+  - calibrate_linear:
+    - 2.10 -> 3.81
+    - 2.20 -> 3.99
+  on_value:
+  - lambda: |-
+      float state = 100 * (x - 3.3f) / (4.17f - 3.3f);
+      state = clamp(state, 0, 100);
+      id(battery_level).publish_state(state);
+
+- platform: template
+  id: battery_level
+  name: ${friendly_name} Battery Level
+  accuracy_decimals: 0
+  icon: mdi:battery
+  update_interval: never
+
+i2c:
+
+mcp23017:
+- id: mcp23017_hub
+  address: 0x20
+
+binary_sensor:
+- platform: status
+  name: "${friendly_name} Node Status"
+  id: system_status
+
+- platform: template
+  name: "${friendly_name} Should Deep Sleep"
+  id: should_deep_sleep
+
+- platform: gpio
+  name: "${friendly_name} Touch Pad 1"
+  id: touch_1
+  pin:
+    mcp23017: mcp23017_hub
+    number: 10
+    interrupt: FALLING
+- platform: gpio
+  name: "${friendly_name} Touch Pad 2"
+  id: touch_2
+  pin:
+    mcp23017: mcp23017_hub
+    number: 11
+    interrupt: FALLING
+- platform: gpio
+  name: "${friendly_name} Touch Pad 3"
+  id: touch_3
+  pin:
+    mcp23017: mcp23017_hub
+    number: 12
+    interrupt: FALLING
+
+time:
+- platform: homeassistant
+  id: esptime
+
+font:
+- file: "fonts/OpenSans-Regular.ttf"
+  id: opensans_24
+  size: 24
+  glyphs: ${glyphs}
+
+- file: "fonts/Inter-Black.ttf"
+  glyphs: ${glyphs}
+  id: inter_36
+  size: 36
+- file: "fonts/visitor1.ttf"
+  glyphs: ${glyphs}
+  id: visitor_20
+  size: 20
+
+display:
+- platform: inkplate6
+  id: inkplate_display
+  partial_updating: false
+  update_interval: never
+  greyscale: false
+  rotation: 90
+
+  ckv_pin: 32
+  sph_pin: 33
+  gmod_pin:
+    mcp23017: mcp23017_hub
+    number: 1
+  gpio0_enable_pin:
+    mcp23017: mcp23017_hub
+    number: 8
+  oe_pin:
+    mcp23017: mcp23017_hub
+    number: 0
+  spv_pin:
+    mcp23017: mcp23017_hub
+    number: 2
+  powerup_pin:
+    mcp23017: mcp23017_hub
+    number: 4
+  wakeup_pin:
+    mcp23017: mcp23017_hub
+    number: 3
+  vcom_pin:
+    mcp23017: mcp23017_hub
+    number: 5
+
+  pages:
+  - id: calendar
+    lambda: draw_agenda(it);

@@ -1,0 +1,437 @@
+[
+  {
+      "id": "4d8b80f3.45821",
+      "type": "tab",
+      "label": "Inkplate Agenda",
+      "disabled": false,
+      "info": ""
+  },
+  {
+      "id": "42913507.e5cbec",
+      "type": "function",
+      "z": "4d8b80f3.45821",
+      "name": "Create Calendar API Request",
+      "func": "var json = {\n    \"calendarId\":\"{Your calendar email address goes here}\",\n    \"timeMin\":msg.startTime,\n    \"timeMax\":msg.endTime,\n    \"timeZone\":\"Pacific/Auckland\",\n    \"singleEvents\":\"true\",\n    \"orderBy\":\"startTime\"\n};\n\n// https://developers.google.com/calendar/v3/reference/events/list\n\nmsg.payload = json;\nreturn msg;\n",
+      "outputs": 1,
+      "noerr": 0,
+      "initialize": "",
+      "finalize": "",
+      "x": 590,
+      "y": 240,
+      "wires": [
+          [
+              "9fddf488.add938"
+          ]
+      ]
+  },
+  {
+      "id": "107d4f78.54d291",
+      "type": "function",
+      "z": "4d8b80f3.45821",
+      "name": "Set Payload",
+      "func": "var items = msg.payload.items.filter(i => i.summary);\nreturn {\n    payload: items\n};",
+      "outputs": 1,
+      "noerr": 0,
+      "initialize": "",
+      "finalize": "",
+      "x": 530,
+      "y": 360,
+      "wires": [
+          [
+              "bd362153.f49bc"
+          ]
+      ]
+  },
+  {
+      "id": "9fddf488.add938",
+      "type": "google",
+      "z": "4d8b80f3.45821",
+      "name": "Get Events",
+      "google": "2085ff41.d3032",
+      "api": "calendar:v3",
+      "operation": "events.list",
+      "x": 530,
+      "y": 300,
+      "wires": [
+          [
+              "107d4f78.54d291"
+          ]
+      ]
+  },
+  {
+      "id": "5a7f84ed.0bcabc",
+      "type": "inject",
+      "z": "4d8b80f3.45821",
+      "name": "",
+      "props": [],
+      "repeat": "",
+      "crontab": "",
+      "once": false,
+      "onceDelay": 0.1,
+      "topic": "",
+      "x": 350,
+      "y": 160,
+      "wires": [
+          [
+              "790ada5a.93f284"
+          ]
+      ]
+  },
+  {
+      "id": "790ada5a.93f284",
+      "type": "moment",
+      "z": "4d8b80f3.45821",
+      "name": "Create start Timestamp",
+      "topic": "",
+      "input": "",
+      "inputType": "date",
+      "inTz": "ETC/UTC",
+      "adjAmount": "0",
+      "adjType": "hours",
+      "adjDir": "subtract",
+      "format": "YYYY-MM-DD[T00:00:00+13:00]",
+      "locale": "C",
+      "output": "startTime",
+      "outputType": "msg",
+      "outTz": "Pacific/Auckland",
+      "x": 570,
+      "y": 120,
+      "wires": [
+          [
+              "f1df21b7.e256f"
+          ]
+      ]
+  },
+  {
+      "id": "f1df21b7.e256f",
+      "type": "moment",
+      "z": "4d8b80f3.45821",
+      "name": "Create end Timestamp",
+      "topic": "",
+      "input": "",
+      "inputType": "date",
+      "inTz": "ETC/UTC",
+      "adjAmount": "1",
+      "adjType": "months",
+      "adjDir": "add",
+      "format": "YYYY-MM-DD[T23:59:59+13:00]",
+      "locale": "C",
+      "output": "endTime",
+      "outputType": "msg",
+      "outTz": "Pacific/Auckland",
+      "x": 560,
+      "y": 180,
+      "wires": [
+          [
+              "42913507.e5cbec"
+          ]
+      ]
+  },
+  {
+      "id": "bd362153.f49bc",
+      "type": "split",
+      "z": "4d8b80f3.45821",
+      "name": "foreach",
+      "splt": "\\n",
+      "spltType": "str",
+      "arraySplt": 1,
+      "arraySpltType": "len",
+      "stream": false,
+      "addname": "",
+      "x": 520,
+      "y": 420,
+      "wires": [
+          [
+              "a16a222d.972f4"
+          ]
+      ]
+  },
+  {
+      "id": "82b53161.2e77",
+      "type": "api-call-service",
+      "z": "4d8b80f3.45821",
+      "name": "",
+      "server": "3e789255.baf84e",
+      "version": 1,
+      "debugenabled": false,
+      "service_domain": "esphome",
+      "service": "inkplate_add_event",
+      "entityId": "",
+      "data": "{\t   \"title\": payload.summary,\t   \"start_time\": start_time,\t   \"end_time\": end_time \t}",
+      "dataType": "jsonata",
+      "mergecontext": "",
+      "output_location": "",
+      "output_location_type": "none",
+      "mustacheAltTags": false,
+      "x": 600,
+      "y": 540,
+      "wires": [
+          [
+              "f5f0df6.e72f62"
+          ]
+      ]
+  },
+  {
+      "id": "a16a222d.972f4",
+      "type": "function",
+      "z": "4d8b80f3.45821",
+      "name": "Timestamps",
+      "func": "const moment = global.get('moment')\n\nlet start_time;\nlet end_time;\n\nif (msg.payload.start.dateTime) {\n    start_time = msg.payload.start.dateTime\n    end_time = msg.payload.end.dateTime\n} else if (msg.payload.start.date) {\n    start_time = msg.payload.start.date\n    end_time = msg.payload.end.date\n}\n\nmsg.start_time = moment(start_time).unix()\nmsg.end_time = moment(end_time).unix()\n\n\nreturn msg;",
+      "outputs": 1,
+      "noerr": 0,
+      "initialize": "",
+      "finalize": "",
+      "x": 530,
+      "y": 480,
+      "wires": [
+          [
+              "82b53161.2e77"
+          ]
+      ]
+  },
+  {
+      "id": "f5f0df6.e72f62",
+      "type": "join",
+      "z": "4d8b80f3.45821",
+      "name": "",
+      "mode": "auto",
+      "build": "string",
+      "property": "payload",
+      "propertyType": "msg",
+      "key": "topic",
+      "joiner": "\\n",
+      "joinerType": "str",
+      "accumulate": false,
+      "timeout": "",
+      "count": "",
+      "reduceRight": false,
+      "reduceExp": "",
+      "reduceInit": "",
+      "reduceInitType": "",
+      "reduceFixup": "",
+      "x": 510,
+      "y": 600,
+      "wires": [
+          [
+              "e6f5e6e2.39ee48"
+          ]
+      ]
+  },
+  {
+      "id": "3c6dc37b.75920c",
+      "type": "api-call-service",
+      "z": "4d8b80f3.45821",
+      "name": "",
+      "server": "3e789255.baf84e",
+      "version": 1,
+      "debugenabled": false,
+      "service_domain": "esphome",
+      "service": "inkplate_events_added",
+      "entityId": "",
+      "data": "",
+      "dataType": "jsonata",
+      "mergecontext": "",
+      "output_location": "",
+      "output_location_type": "none",
+      "mustacheAltTags": false,
+      "x": 930,
+      "y": 700,
+      "wires": [
+          []
+      ]
+  },
+  {
+      "id": "582c3aca.4b1cd4",
+      "type": "server-state-changed",
+      "z": "4d8b80f3.45821",
+      "name": "Inkplate online",
+      "server": "3e789255.baf84e",
+      "version": 1,
+      "exposeToHomeAssistant": false,
+      "haConfig": [
+          {
+              "property": "name",
+              "value": ""
+          },
+          {
+              "property": "icon",
+              "value": ""
+          }
+      ],
+      "entityidfilter": "binary_sensor.inkplate_node_status",
+      "entityidfiltertype": "exact",
+      "outputinitially": false,
+      "state_type": "habool",
+      "haltifstate": "true",
+      "halt_if_type": "bool",
+      "halt_if_compare": "is",
+      "outputs": 2,
+      "output_only_on_state_change": true,
+      "for": "1",
+      "forType": "num",
+      "forUnits": "seconds",
+      "ignorePrevStateNull": false,
+      "ignorePrevStateUnknown": false,
+      "ignorePrevStateUnavailable": false,
+      "ignoreCurrentStateUnknown": false,
+      "ignoreCurrentStateUnavailable": false,
+      "x": 320,
+      "y": 100,
+      "wires": [
+          [
+              "790ada5a.93f284"
+          ],
+          []
+      ]
+  },
+  {
+      "id": "9752c5c6.94a948",
+      "type": "api-call-service",
+      "z": "4d8b80f3.45821",
+      "name": "",
+      "server": "3e789255.baf84e",
+      "version": 1,
+      "debugenabled": false,
+      "service_domain": "esphome",
+      "service": "inkplate_show_calendar",
+      "entityId": "",
+      "data": "",
+      "dataType": "jsonata",
+      "mergecontext": "",
+      "output_location": "",
+      "output_location_type": "none",
+      "mustacheAltTags": false,
+      "x": 930,
+      "y": 760,
+      "wires": [
+          []
+      ]
+  },
+  {
+      "id": "e6f5e6e2.39ee48",
+      "type": "api-current-state",
+      "z": "4d8b80f3.45821",
+      "name": "Get deep sleep value",
+      "server": "3e789255.baf84e",
+      "version": 1,
+      "outputs": 2,
+      "halt_if": "true",
+      "halt_if_type": "bool",
+      "halt_if_compare": "is",
+      "override_topic": false,
+      "entity_id": "binary_sensor.inkplate_should_deep_sleep",
+      "state_type": "habool",
+      "state_location": "deep_sleep",
+      "override_payload": "msg",
+      "entity_location": "deep_sleep_data",
+      "override_data": "msg",
+      "blockInputOverrides": true,
+      "x": 560,
+      "y": 660,
+      "wires": [
+          [
+              "3c6dc37b.75920c"
+          ],
+          [
+              "9752c5c6.94a948"
+          ]
+      ]
+  },
+  {
+      "id": "e2628eea.aac3c",
+      "type": "function",
+      "z": "4d8b80f3.45821",
+      "name": "Create Add Calendar API Request",
+      "func": "var json = {\n    resource: {\n        id: \"{Your calendar email address goes here}\"\n    }\n};\n\nmsg.payload = json;\nreturn msg;\n",
+      "outputs": 1,
+      "noerr": 0,
+      "initialize": "",
+      "finalize": "",
+      "x": 340,
+      "y": 900,
+      "wires": [
+          [
+              "38a3d4cd.5fe5bc"
+          ]
+      ]
+  },
+  {
+      "id": "38a3d4cd.5fe5bc",
+      "type": "google",
+      "z": "4d8b80f3.45821",
+      "name": "Add Shared Calendar",
+      "google": "2085ff41.d3032",
+      "api": "calendar:v3",
+      "operation": "calendarList.insert",
+      "x": 300,
+      "y": 960,
+      "wires": [
+          [
+              "3be4a07f.ca70d"
+          ]
+      ]
+  },
+  {
+      "id": "3be4a07f.ca70d",
+      "type": "debug",
+      "z": "4d8b80f3.45821",
+      "name": "",
+      "active": true,
+      "tosidebar": true,
+      "console": false,
+      "tostatus": false,
+      "complete": "payload",
+      "targetType": "msg",
+      "statusVal": "",
+      "statusType": "auto",
+      "x": 270,
+      "y": 1020,
+      "wires": []
+  },
+  {
+      "id": "350a05e9.c8f38a",
+      "type": "inject",
+      "z": "4d8b80f3.45821",
+      "name": "",
+      "props": [],
+      "repeat": "",
+      "crontab": "",
+      "once": false,
+      "onceDelay": 0.1,
+      "topic": "",
+      "x": 250,
+      "y": 840,
+      "wires": [
+          [
+              "e2628eea.aac3c"
+          ]
+      ]
+  },
+  {
+      "id": "c8236015.b6ad4",
+      "type": "comment",
+      "z": "4d8b80f3.45821",
+      "name": "Accept Calendar README",
+      "info": "Edit the calendar ID in the function here, run it and verify that the calendar was added. \nYOu will see the calendar details in the debug tab if it was successful.\n\nThis mini flow can be deleted and is only needed once per calendar.",
+      "x": 450,
+      "y": 840,
+      "wires": []
+  },
+  {
+      "id": "2085ff41.d3032",
+      "type": "google-conn",
+      "name": "Google",
+      "key": "",
+      "scopes": "https://www.googleapis.com/auth/calendar\nhttps://www.googleapis.com/auth/calendar.events\nhttps://www.googleapis.com/auth/calendar.events.readonly\nhttps://www.googleapis.com/auth/calendar.readonly\nhttps://www.googleapis.com/auth/calendar.settings.readonly"
+  },
+  {
+      "id": "3e789255.baf84e",
+      "type": "server",
+      "name": "Home Assistant",
+      "legacy": false,
+      "addon": true,
+      "rejectUnauthorizedCerts": true,
+      "ha_boolean": "y|yes|true|on|home|open",
+      "connectionDelay": true
+  }
+]
