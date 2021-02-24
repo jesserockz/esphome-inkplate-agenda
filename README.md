@@ -4,6 +4,13 @@ This combination of configuration files will set up node-red to pull your calend
 and push them to your Inkplate6 running ESPHome with the included [inkplate.yaml](inkplate.yaml).
 
 
+## Warning
+
+The YAML file uses configuration that is not merged into ESPHome
+yet. It is for the touch pad interrupts to wake the inkplate on demand
+for a forced data refresh or to OTA flash it.
+
+
 ## Basic flow of events
 
 1. Inkplate wakes up from deep sleep
