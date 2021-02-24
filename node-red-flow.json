@@ -164,7 +164,7 @@
       "output_location_type": "none",
       "mustacheAltTags": false,
       "x": 600,
-      "y": 540,
+      "y": 660,
       "wires": [
           [
               "f5f0df6.e72f62"
@@ -176,7 +176,7 @@
       "type": "function",
       "z": "4d8b80f3.45821",
       "name": "Timestamps",
-      "func": "const moment = global.get('moment')\n\nlet start_time;\nlet end_time;\n\nif (msg.payload.start.dateTime) {\n    start_time = msg.payload.start.dateTime\n    end_time = msg.payload.end.dateTime\n} else if (msg.payload.start.date) {\n    start_time = msg.payload.start.date\n    end_time = msg.payload.end.date\n}\n\nmsg.start_time = moment(start_time).unix()\nmsg.end_time = moment(end_time).unix()\n\n\nreturn msg;",
+      "func": "let start_time;\nlet end_time;\n\nif (msg.payload.start.dateTime) {\n    start_time = msg.payload.start.dateTime\n    end_time = msg.payload.end.dateTime\n} else if (msg.payload.start.date) {\n    start_time = msg.payload.start.date\n    end_time = msg.payload.end.date\n}\n\nmsg.start_time = start_time\nmsg.end_time = end_time\n\n\nreturn msg;",
       "outputs": 1,
       "noerr": 0,
       "initialize": "",
@@ -185,7 +185,7 @@
       "y": 480,
       "wires": [
           [
-              "82b53161.2e77"
+              "688d8383.a4d13c"
           ]
       ]
   },
@@ -210,7 +210,7 @@
       "reduceInitType": "",
       "reduceFixup": "",
       "x": 510,
-      "y": 600,
+      "y": 720,
       "wires": [
           [
               "e6f5e6e2.39ee48"
@@ -235,7 +235,7 @@
       "output_location_type": "none",
       "mustacheAltTags": false,
       "x": 930,
-      "y": 700,
+      "y": 820,
       "wires": [
           []
       ]
@@ -302,7 +302,7 @@
       "output_location_type": "none",
       "mustacheAltTags": false,
       "x": 930,
-      "y": 760,
+      "y": 880,
       "wires": [
           []
       ]
@@ -327,7 +327,7 @@
       "override_data": "msg",
       "blockInputOverrides": true,
       "x": 560,
-      "y": 660,
+      "y": 780,
       "wires": [
           [
               "3c6dc37b.75920c"
@@ -416,6 +416,56 @@
       "x": 450,
       "y": 840,
       "wires": []
+  },
+  {
+      "id": "688d8383.a4d13c",
+      "type": "moment",
+      "z": "4d8b80f3.45821",
+      "name": "Format Start timestamp",
+      "topic": "",
+      "input": "start_time",
+      "inputType": "msg",
+      "inTz": "ETC/UTC",
+      "adjAmount": 0,
+      "adjType": "days",
+      "adjDir": "add",
+      "format": "X",
+      "locale": "C",
+      "output": "start_time",
+      "outputType": "msg",
+      "outTz": "ETC/UTC",
+      "x": 570,
+      "y": 540,
+      "wires": [
+          [
+              "d98d5ef2.ba0b6"
+          ]
+      ]
+  },
+  {
+      "id": "d98d5ef2.ba0b6",
+      "type": "moment",
+      "z": "4d8b80f3.45821",
+      "name": "Format End timestamp",
+      "topic": "",
+      "input": "end_time",
+      "inputType": "msg",
+      "inTz": "ETC/UTC",
+      "adjAmount": 0,
+      "adjType": "days",
+      "adjDir": "add",
+      "format": "X",
+      "locale": "C",
+      "output": "end_time",
+      "outputType": "msg",
+      "outTz": "ETC/UTC",
+      "x": 560,
+      "y": 600,
+      "wires": [
+          [
+              "82b53161.2e77"
+          ]
+      ]
   },
   {
       "id": "2085ff41.d3032",
