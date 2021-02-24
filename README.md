@@ -23,7 +23,10 @@ for a forced data refresh or to OTA flash it.
     3. Send the Inkplate6 into deep sleep for 1 hour
 
 
-| Private calendar events: If yo
+
+> **Private calendar events**: If you want to have certain events that do not show in the Inkplate agenda, you can mark them as private
+  as long as the share has only read access to the calendar and they will not show up as the `summary` is missing from the API reponse
+  and a node in the Node-Red flow will filter these from the list.
 
 
 ## Setup
