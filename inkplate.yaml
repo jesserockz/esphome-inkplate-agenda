@@ -2,6 +2,7 @@ substitutions:
   devicename: inkplate
   friendly_name: Inkplate
   glyphs: " !'\"%()+,-.:0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz°$"
+  deep_sleep_time: 60min
 
 logger:
 
@@ -27,14 +28,11 @@ esphome:
   - inkplate.h
 
   on_boot:
-  - priority: 300
-    then:
-    - lambda: |-
-        id(battery_voltage).update();
-        id(should_deep_sleep).publish_state(!id(touch_3).state);
+  - then:
+    - lambda: id(should_deep_sleep).publish_state(!id(touch_3).state);
 
 deep_sleep:
-  sleep_duration: 60min
+  sleep_duration: ${deep_sleep_time}
   wakeup_pin_mode: INVERT_WAKEUP
   esp32_ext1_wakeup:
     pins: 34
@@ -50,19 +48,20 @@ api:
   - service: add_event
     variables:
       title: string
+      location: string
       start_time: int
       end_time: int
     then:
-    - lambda: add_event(title, start_time, end_time);
+    - lambda: inkplate_agenda::add_event(title, location, start_time, end_time);
   - service: events_added
     then:
     - component.update: battery_voltage
     - component.update: inkplate_display
-    - deep_sleep.enter:
-globals:
-- id: current_page
-  type: int
-  initial_value: "0"
+    - if:
+        condition:
+          binary_sensor.is_on: should_deep_sleep
+        then:
+          - deep_sleep.enter:
 
 switch:
 - platform: restart
@@ -137,21 +136,21 @@ binary_sensor:
   pin:
     mcp23017: mcp23017_hub
     number: 10
-    interrupt: FALLING
+    # interrupt: FALLING
 - platform: gpio
   name: "${friendly_name} Touch Pad 2"
   id: touch_2
   pin:
     mcp23017: mcp23017_hub
     number: 11
-    interrupt: FALLING
+    # interrupt: FALLING
 - platform: gpio
   name: "${friendly_name} Touch Pad 3"
   id: touch_3
   pin:
     mcp23017: mcp23017_hub
     number: 12
-    interrupt: FALLING
+    # interrupt: FALLING
 
 time:
 - platform: homeassistant
@@ -167,10 +166,22 @@ font:
   glyphs: ${glyphs}
   id: inter_36
   size: 36
+
+- file: "fonts/Inter-SemiBold.ttf"
+  glyphs: ${glyphs}
+  id: inter_semi_18
+  size: 18
+
 - file: "fonts/visitor1.ttf"
   glyphs: ${glyphs}
   id: visitor_20
   size: 20
+
+color:
+- id: color_gray
+  red: 50%
+  green: 50%
+  blue: 50%
 
 display:
 - platform: inkplate6
@@ -206,4 +217,4 @@ display:
 
   pages:
   - id: calendar
-    lambda: draw_agenda(it);
+    lambda: inkplate_agenda::draw_agenda(it, id(color_gray));

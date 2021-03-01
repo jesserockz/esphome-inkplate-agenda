@@ -1,12 +1,20 @@
 #include "esphome.h"
 
+namespace esphome {
+namespace inkplate_agenda {
+
+static const char *TAG = "inkplate_agenda";
+
 struct Event {
   std::string title;
-  esphome::time::ESPTime start_time;
-  esphome::time::ESPTime end_time;
+  std::string location;
+  time::ESPTime start_time;
+  time::ESPTime end_time;
 };
 
 std::vector<Event> events;
+
+bool event_compare(Event i, Event j) { return (i.start_time < j.start_time); }
 
 static const uint16_t LEFT_BORDER = 10;
 static const uint16_t LEFT_TITLE = 110;
@@ -16,20 +24,23 @@ static const uint16_t HEIGHT = 800;
 
 static const uint32_t ONE_DAY = 60 * 60 * 24;
 
-void add_event(const std::string title, uint32_t start_time, uint32_t end_time) {
+void add_event(const std::string title, const std::string location, uint32_t start_time, uint32_t end_time) {
   Event event{
     .title = title,
-    .start_time = esphome::time::ESPTime::from_epoch_local(start_time),
-    .end_time = esphome::time::ESPTime::from_epoch_local(end_time)
+    .location = location,
+    .start_time = time::ESPTime::from_epoch_local(start_time),
+    .end_time = time::ESPTime::from_epoch_local(end_time)
   };
   events.push_back(event);
+  ESP_LOGD(TAG, "Event added: %s at %s from %d to %d", title.c_str(), location.c_str(), start_time, end_time);
 }
 
 void clear_events() {
   events.clear();
 }
 
-void draw_agenda(esphome::display::DisplayBuffer &it) {
+void draw_agenda(display::DisplayBuffer &it, Color color_gray) {
+  std::sort(events.begin(), events.end(), event_compare);
 
   it.fill(COLOR_ON);
 
@@ -69,6 +80,10 @@ void draw_agenda(esphome::display::DisplayBuffer &it) {
     }
 
     it.print(LEFT_TITLE, height, &id(inter_36), COLOR_OFF, TextAlign::TOP_LEFT, event.title.c_str());
+    if (!event.location.empty()) {
+      it.print(LEFT_TITLE, height + 36, &id(inter_semi_18), COLOR_OFF, TextAlign::TOP_LEFT, event.location.c_str());
+      height += 18;
+    }
 
     height += 40;
 
@@ -80,3 +95,6 @@ void draw_agenda(esphome::display::DisplayBuffer &it) {
   it.strftime(WIDTH - LEFT_BORDER, 795, &id(opensans_24), COLOR_OFF, TextAlign::BOTTOM_RIGHT, "Last Updated: %I:%M%p", id(esptime).now());
 
 }
+
+}  // namespace inkplate_agenda
+}  // namespace esphome
